@@ -3,26 +3,24 @@ public class Dogshow {
         // Get the 5 oldest accounts
         Account[] accounts = [SELECT Id, Description FROM Account ORDER BY CreatedDate ASC LIMIT 5];
 
-        // Set HTTP request
-        HttpRequest req = new HttpRequest();
-        req.setEndpoint('https://dog.ceo/api/breeds/image/random');
-        req.setMethod('GET');
+        // Set up the function
+        functions.Function dogshowFunction = functions.Function.get('ApexToSalesforceFunctionsMigration.dogshowfunction');
 
-        // Create a new HTTP object to send the request object
-        Http http = new Http();
-        HTTPResponse res = http.send(req);
+        // Create a list to hold the record data
+        List<Map<String, String>> jsonObj = new List<Map<String, String>>();
+        for (Account account : accounts) {
+            Map<String, Object> obj = new Map<String, Object>();
 
-        String body = res.getBody();
+            obj.put('id', account.Id);
+            obj.put('Description', account.Description);
 
-        Map<String, String> m = (Map<String, String>) JSON.deserialize(jsonStr, Map<String, String>.class);
-        String dogUrl = m.get('message');
-
-        // loop through accounts and update the Description field
-        for (Account acct : oldAccounts) {
-            acct.Description += ' And their favorite dog can be found at ' + dogUrl;
+            // Add an object to the record list
+            jsonObj.add(obj);
         }
+        // Send the record list to the function
+        functions.FunctionInvocation invocation = dogshowFunction.invoke(JSON.Serialize(jsonObj));
 
-        // save the change you made
-        update accounts;
+        // if the function had a return value, it would be available here
+        invocation.getResponse();
       }
 }
